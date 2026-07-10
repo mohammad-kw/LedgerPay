@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+        We inherit from Spring Boot's "starter parent" POM.
+        This gives us for free:
+          - Sensible default plugin configuration (compiler source/target,
+            surefire test runner, resource filtering, etc.)
+          - A "dependency management" section that pins compatible versions
+            for every spring-boot-starter-* artifact AND many common
+            libraries (Lombok, the MySQL driver, JUnit, H2, ...) so that we
+            do NOT need to write a <version> tag for any of them below.
+            Spring Boot's team has already tested that everything in this
+            train of versions works together correctly.
+    -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.4</version>
+        <relativePath/> <!-- look this up on Maven Central, not in a local parent folder -->
+    </parent>
+
+    <groupId>com.wallet</groupId>
+    <artifactId>ledgerpay-backend</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>ledgerpay-backend</name>
+    <description>
+        Backend for LedgerPay - a payment wallet and reconciliation system.
+        See PROJECT_SPEC.md at the repository root for the full requirements
+        this project is built against.
+    </description>
+
+    <properties>
+        <!-- Compile against Java 21 (LTS) language level and bytecode target. -->
+        <java.version>21</java.version>
+    </properties>
+
+    <dependencies>
+
+        <!-- ===================== Web layer ===================== -->
+        <!--
+            Brings in: an embedded Tomcat server, Spring MVC
+            (@RestController, @RequestMapping, ...), and Jackson for
+            converting Java objects to/from JSON automatically. This is what
+            will let us expose the REST endpoints listed in PROJECT_SPEC.md
+            Section 5, in a later phase.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- ===================== Persistence layer ===================== -->
+        <!--
+            Brings in Hibernate (the JPA implementation that turns @Entity
+            classes into SQL) plus Spring Data JPA (repository interfaces
+            like JpaRepository<User, Long> that generate query
+            implementations for us automatically). This is what makes the
+            entity classes in com.wallet.entity actually persistable.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <!-- ===================== Security ===================== -->
+        <!--
+            Brings in the Spring Security framework: BCrypt password
+            hashing, servlet filter chains, authentication/authorization
+            infrastructure. We are NOT configuring any of it yet - that is a
+            later Phase 1 task (JWT login). For now it simply sits on the
+            classpath.
+
+            NOTE for later: with this dependency present and no custom
+            SecurityFilterChain bean defined, Spring Boot auto-generates a
+            random login password and prints it to the console log on every
+            startup (something like "Using generated security password:
+            ..."). That is expected and harmless - it goes away once we add
+            our own JWT-based security configuration.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <!-- ===================== Bean Validation ===================== -->
+        <!--
+            Brings in Jakarta Bean Validation annotations (@NotNull,
+            @NotBlank, @Email, @Positive, ...) plus Hibernate Validator,
+            which actually enforces them. We will use these on request DTOs
+            in a later phase to validate incoming API request bodies (e.g.
+            "transfer amount must be positive") per PROJECT_SPEC.md
+            Section 7.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- ===================== MySQL JDBC driver ===================== -->
+        <!--
+            The actual driver Hibernate uses to open a network connection to
+            a real MySQL server and translate JDBC calls into MySQL's wire
+            protocol. Scope "runtime" because our own code never imports
+            com.mysql.* classes directly - Spring Boot loads this driver
+            reflectively, based on the JDBC URL we configure in
+            application.properties.
+        -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- ===================== JJWT (JSON Web Token library) ===================== -->
+        <!--
+            Used by com.wallet.security.JwtService to create and verify the
+            access tokens described in PROJECT_SPEC.md Section 2 ("JWT
+            (access token + refresh token)"). Split into 3 artifacts
+            (this is JJWT's own recommended setup, not our choice):
+
+              jjwt-api     (compile scope) - the actual classes/interfaces
+                           WE write code against (Jwts, Claims, ...). JJWT
+                           guarantees this one stays backwards-compatible
+                           across versions.
+              jjwt-impl    (runtime only)  - the real implementation code.
+                           We never import anything from this artifact
+                           directly - it's loaded reflectively at runtime.
+                           JJWT explicitly warns this jar's internals can
+                           change at any time, which is exactly why it's
+                           runtime-only and not something our code touches.
+              jjwt-jackson (runtime only)  - tells JJWT to use Jackson
+                           (which spring-boot-starter-web already brings
+                           in) to turn claims into JSON under the hood.
+        -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.13.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>0.13.0</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>0.13.0</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- ===================== Razorpay Java SDK ===================== -->
+        <!--
+            The official Razorpay server-side SDK, used by
+            com.wallet.service.RazorpayOrderService to create payment Orders
+            (PROJECT_SPEC.md Section 2 "Payment Gateway: Razorpay - Test
+            Mode" and Section 6). We only ever call this from the BACKEND,
+            using our secret key - the browser never sees the key secret.
+
+            It transitively brings in an HTTP client (OkHttp) and org.json
+            (JSONObject), which the SDK's own API is expressed in terms of.
+            No <scope> means the default "compile" scope: it's needed both
+            when we compile against com.razorpay.* classes and at runtime.
+        -->
+        <dependency>
+            <groupId>com.razorpay</groupId>
+            <artifactId>razorpay-java</artifactId>
+            <version>1.4.9</version>
+        </dependency>
+
+
+        <!-- ===================== Lombok ===================== -->
+        <!--
+            A compile-time-only annotation processor. Annotations like
+            @Getter/@Setter/@Builder (used on every entity in
+            com.wallet.entity) tell Lombok to GENERATE that boilerplate Java
+            code for us during compilation, so we never hand-write it.
+            "optional=true" means: if some OTHER project ever depends on
+            this one, Lombok will not be transitively pulled in too (it
+            genuinely is only needed here, at compile time).
+        -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- ===================== Spring Boot Configuration Processor ===================== -->
+        <!--
+            A compile-time-only annotation processor (similar in spirit to
+            Lombok - see above) that scans our @ConfigurationProperties
+            classes (com.wallet.security.JwtProperties) and generates a
+            META-INF/spring-configuration-metadata.json file describing
+            every property they expose (jwt.secret,
+            jwt.access-token-expiry-ms, ...). This is what lets an IDE
+            recognize "jwt.secret" typed into application.properties as a
+            KNOWN, valid property (with autocomplete) instead of flagging
+            it as an unrecognized/unknown key. It has zero effect on the
+            actual running application - purely a developer-experience
+            aid - which is exactly why, like Lombok, it's marked optional
+            so it's never pulled into any project that might depend on
+            this one.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- ===================== Testing ===================== -->
+        <!--
+            Brings in JUnit 5, Mockito, AssertJ, and Spring's test utilities
+            (like @SpringBootTest). Scoped to "test" so none of it is ever
+            bundled into the final packaged application.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Test helpers specifically for Spring Security (used once we add JWT auth tests). -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- ===================== H2 in-memory database (tests only) ===================== -->
+        <!--
+            An in-memory database that starts instantly inside the same JVM
+            and disappears when the JVM exits - no separate server, no
+            installation. We use this ONLY when running automated tests
+            (see src/test/resources/application.properties) so that:
+              1. `mvn test` works out of the box on any machine, with no
+                 real MySQL server required.
+              2. Tests can never accidentally read/write our real
+                 development database.
+            This matches PROJECT_SPEC.md Section 8's testing requirements
+            ("Use an in-memory or test database... never test against the
+            real dev database").
+        -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <!--
+                        Lombok and the configuration processor are only
+                        ever needed at COMPILE time (to generate code /
+                        metadata). Excluding them here stops them from
+                        being bundled as runtime dependencies inside the
+                        final executable jar - they have no reason to be
+                        there since by the time we package the app, all the
+                        getters/setters/builders Lombok generated already
+                        exist as plain compiled .class bytecode, and the
+                        metadata JSON file has already been generated.
+                    -->
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                        <exclude>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-configuration-processor</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

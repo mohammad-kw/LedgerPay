@@ -1,0 +1,1089 @@
+/* ==========================================================================
+   LedgerPay design system
+   --------------------------------------------------------------------------
+   A hand-built, dependency-free theme (no Tailwind/Bootstrap/MUI - keeping to
+   PROJECT_SPEC.md Section 9's "no over-engineering" rule). The goal is a
+   polished, modern "fintech" feel: calm indigo/violet brand, an emerald
+   "money" accent, soft shadows, rounded corners, and subtle motion - without
+   being loud or over-designed.
+
+   Everything is driven by the CSS custom properties (design tokens) in
+   :root below, so the entire look can be retuned from one place.
+   ========================================================================== */
+
+:root {
+  /* ---- Brand / primary (indigo -> violet) ---- */
+  --color-primary: #4f46e5;
+  --color-primary-hover: #4338ca;
+  --color-primary-soft: #eef2ff;
+  --gradient-brand: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  --gradient-brand-strong: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
+
+  /* ---- Semantic accents ---- */
+  --color-success: #10b981; /* credits / SUCCESS */
+  --color-success-soft: #d1fae5;
+  --color-warning: #f59e0b; /* PENDING */
+  --color-warning-soft: #fef3c7;
+  --color-danger: #f43f5e; /* debits / FAILED / errors */
+  --color-danger-soft: #ffe4e6;
+  --color-info: #0ea5e9;
+  --color-info-soft: #e0f2fe;
+
+  /* ---- Neutrals (slate scale) ---- */
+  --color-bg: #f1f5f9;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f8fafc;
+  --color-border: #e2e8f0;
+  --color-text: #0f172a;
+  --color-text-muted: #64748b;
+  --color-text-faint: #94a3b8;
+
+  /* ---- Typography ---- */
+  --font-sans:
+    "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* ---- Radii ---- */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  /* ---- Shadows (soft, layered) ---- */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-sm:
+    0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md:
+    0 4px 12px rgba(15, 23, 42, 0.08), 0 2px 4px rgba(15, 23, 42, 0.04);
+  --shadow-lg:
+    0 12px 28px rgba(15, 23, 42, 0.12), 0 4px 8px rgba(15, 23, 42, 0.06);
+  --shadow-brand: 0 12px 24px rgba(79, 70, 229, 0.28);
+
+  /* ---- Motion ---- */
+  --transition-fast: 120ms ease;
+  --transition: 180ms ease;
+}
+
+/* ==========================================================================
+   Base / reset
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  /* A very soft brand-tinted radial wash in the corners so large empty
+     areas never look flat/dead, while staying subtle enough to read text
+     over comfortably. */
+  background-image:
+    radial-gradient(
+      1200px 600px at 100% -10%,
+      rgba(124, 58, 237, 0.08),
+      transparent 60%
+    ),
+    radial-gradient(
+      1000px 500px at -10% 110%,
+      rgba(79, 70, 229, 0.08),
+      transparent 60%
+    );
+  background-attachment: fixed;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+a {
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+/* ==========================================================================
+   Reusable primitives
+   ========================================================================== */
+
+/* ---- Buttons ---------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 18px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition),
+    background-color var(--transition),
+    border-color var(--transition),
+    color var(--transition);
+  white-space: nowrap;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+
+.btn:focus-visible {
+  outline: 3px solid rgba(79, 70, 229, 0.35);
+  outline-offset: 2px;
+}
+
+.btn-primary {
+  color: #fff;
+  background-image: var(--gradient-brand);
+  box-shadow: var(--shadow-brand);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-image: var(--gradient-brand-strong);
+  box-shadow: 0 16px 30px rgba(79, 70, 229, 0.34);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-xs);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  border-color: #cbd5e1;
+  background-color: var(--color-surface-muted);
+  transform: translateY(-1px);
+}
+
+.btn-ghost {
+  color: var(--color-text-muted);
+  background-color: transparent;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  color: var(--color-text);
+  background-color: rgba(15, 23, 42, 0.05);
+}
+
+.btn-danger {
+  color: #fff;
+  background-color: var(--color-danger);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #e11d48;
+  transform: translateY(-1px);
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn-lg {
+  padding: 14px 22px;
+  font-size: 1rem;
+}
+
+/* ---- Cards ------------------------------------------------------------ */
+.card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.card-padded {
+  padding: 24px;
+}
+
+/* ---- Form fields ------------------------------------------------------ */
+.form-field {
+  margin-bottom: 18px;
+}
+
+.form-field label {
+  display: block;
+  margin-bottom: 7px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--color-text);
+}
+
+.input {
+  width: 100%;
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: 1rem;
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition:
+    border-color var(--transition),
+    box-shadow var(--transition);
+}
+
+.input::placeholder {
+  color: var(--color-text-faint);
+}
+
+.input:hover {
+  border-color: #cbd5e1;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-primary-soft);
+}
+
+.input.input-error {
+  border-color: var(--color-danger);
+}
+
+.input.input-error:focus {
+  box-shadow: 0 0 0 4px var(--color-danger-soft);
+}
+
+.field-error {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-danger);
+}
+
+.field-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+/* ---- Alert banners ---------------------------------------------------- */
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 18px;
+}
+
+.alert-error {
+  color: #9f1239;
+  background-color: var(--color-danger-soft);
+  border: 1px solid #fecdd3;
+}
+
+.alert-success {
+  color: #065f46;
+  background-color: var(--color-success-soft);
+  border: 1px solid #a7f3d0;
+}
+
+/* ---- Status pills ----------------------------------------------------- */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-radius: var(--radius-pill);
+  text-transform: capitalize;
+}
+
+.pill::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+.pill-success {
+  color: #047857;
+  background-color: var(--color-success-soft);
+}
+
+.pill-pending {
+  color: #b45309;
+  background-color: var(--color-warning-soft);
+}
+
+.pill-failed {
+  color: #be123c;
+  background-color: var(--color-danger-soft);
+}
+
+.pill-neutral {
+  color: var(--color-text-muted);
+  background-color: #e2e8f0;
+}
+
+/* ==========================================================================
+   Auth layout (Login / Register)
+   --------------------------------------------------------------------------
+   A centered card sitting on the brand-tinted background. On wider screens
+   it becomes a two-column "split" - a brand/marketing panel beside the form
+   - which reads as far more considered than a lone box.
+   ========================================================================== */
+
+.auth-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 960px;
+  display: grid;
+  grid-template-columns: 1fr;
+  overflow: hidden;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  animation: rise-in 400ms ease both;
+}
+
+/* Left brand panel - hidden on small screens, shown from 900px up. */
+.auth-brand {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 40px;
+  color: #fff;
+  background-image: var(--gradient-brand);
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-brand::after {
+  /* soft decorative glow */
+  content: "";
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  right: -120px;
+  bottom: -120px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  filter: blur(8px);
+}
+
+.auth-brand-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.auth-brand-headline {
+  font-size: 1.9rem;
+  font-weight: 800;
+  margin-top: 24px;
+}
+
+.auth-brand-sub {
+  margin-top: 12px;
+  font-size: 0.975rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.85);
+  max-width: 34ch;
+}
+
+.auth-brand-points {
+  list-style: none;
+  padding: 0;
+  margin: 28px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.auth-brand-points li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.auth-brand-points li svg {
+  flex-shrink: 0;
+}
+
+.auth-form-panel {
+  padding: 40px;
+}
+
+.auth-header {
+  margin-bottom: 28px;
+}
+
+.auth-eyebrow {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-primary);
+}
+
+.auth-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin-top: 6px;
+}
+
+.auth-subtitle {
+  margin-top: 8px;
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}
+
+.auth-footer {
+  margin-top: 22px;
+  font-size: 0.9rem;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+/* The brand logo mark used on the auth brand panel and the navbar. */
+.logo-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  font-weight: 800;
+  color: #fff;
+  background-image: var(--gradient-brand);
+  box-shadow: var(--shadow-brand);
+}
+
+@media (min-width: 900px) {
+  .auth-card {
+    grid-template-columns: 1.05fr 1fr;
+  }
+
+  .auth-brand {
+    display: flex;
+  }
+}
+
+/* ==========================================================================
+   App shell (authenticated pages: navbar + content)
+   ========================================================================== */
+
+.app-shell {
+  min-height: 100vh;
+}
+
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.navbar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.navbar-user {
+  display: none;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+@media (min-width: 640px) {
+  .navbar-user {
+    display: inline;
+  }
+}
+
+.page-content {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+/* ==========================================================================
+   Dashboard
+   ========================================================================== */
+
+.page-heading {
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.page-subheading {
+  margin-top: 6px;
+  color: var(--color-text-muted);
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  margin-top: 24px;
+}
+
+@media (min-width: 760px) {
+  .dashboard-grid {
+    grid-template-columns: 1.4fr 1fr;
+    align-items: start;
+  }
+}
+
+/* ---- Balance hero card ------------------------------------------------ */
+.balance-card {
+  position: relative;
+  overflow: hidden;
+  padding: 28px;
+  border-radius: var(--radius-lg);
+  color: #fff;
+  background-image: var(--gradient-brand);
+  box-shadow: var(--shadow-brand);
+}
+
+.balance-card::after {
+  content: "";
+  position: absolute;
+  width: 260px;
+  height: 260px;
+  right: -80px;
+  top: -120px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.balance-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.balance-amount {
+  margin-top: 10px;
+  font-size: 2.6rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.balance-meta {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.75);
+  position: relative;
+  z-index: 1;
+}
+
+/* ---- Quick action cards ---------------------------------------------- */
+.action-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.action-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 18px 20px;
+  text-align: left;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition:
+    transform var(--transition),
+    box-shadow var(--transition),
+    border-color var(--transition);
+}
+
+.action-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: #cbd5e1;
+}
+
+.action-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.action-icon-topup {
+  color: var(--color-success);
+  background-color: var(--color-success-soft);
+}
+
+.action-icon-transfer {
+  color: var(--color-primary);
+  background-color: var(--color-primary-soft);
+}
+
+.action-title {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.action-desc {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+/* ---- Transactions table ---------------------------------------------- */
+.section-card {
+  margin-top: 24px;
+  padding: 8px 0;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.txn-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.txn-table th {
+  text-align: left;
+  padding: 12px 24px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-faint);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-surface-muted);
+}
+
+.txn-table td {
+  padding: 14px 24px;
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.txn-table tr:last-child td {
+  border-bottom: none;
+}
+
+.txn-table tbody tr {
+  transition: background-color var(--transition-fast);
+}
+
+.txn-table tbody tr:hover {
+  background-color: var(--color-surface-muted);
+}
+
+.amount-credit {
+  font-weight: 700;
+  color: var(--color-success);
+}
+
+.amount-debit {
+  font-weight: 700;
+  color: var(--color-danger);
+}
+
+/* ---- Empty state ------------------------------------------------------ */
+.empty-state {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.empty-state-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 12px;
+  border-radius: 16px;
+  color: var(--color-primary);
+  background-color: var(--color-primary-soft);
+}
+
+.empty-state-title {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+/* ==========================================================================
+   Modal (used by the "Add money" top-up dialog on the Dashboard)
+   ==========================================================================
+   A lightweight, dependency-free dialog. The overlay dims + blurs the page
+   behind it and centres the panel; clicking the overlay (but not the panel)
+   closes it. Kept generic so other flows (e.g. Send money) can reuse it. */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background-color: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  animation: fade-in 160ms ease both;
+}
+
+.modal-panel {
+  width: 100%;
+  max-width: 420px;
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 28px;
+  animation: rise-in 220ms ease both;
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.modal-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.modal-subtitle {
+  margin-top: 4px;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.modal-close {
+  flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--color-text-muted);
+  background-color: transparent;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.modal-close:hover {
+  background-color: var(--color-surface-muted);
+  color: var(--color-text);
+}
+
+/* ---- Amount input with a leading currency symbol --------------------- */
+.amount-input {
+  position: relative;
+}
+
+.amount-input-symbol {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  transform: translateY(-50%);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.amount-input .input {
+  padding-left: 30px;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+/* ---- Quick-pick amount chips ----------------------------------------- */
+.amount-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.amount-preset {
+  padding: 6px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background-color: var(--color-surface);
+  cursor: pointer;
+  transition:
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+.amount-preset:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.amount-preset-active {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background-color: var(--color-primary-soft);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+/* Dev-only "add instantly" block inside the Add-money modal. Visually set
+   apart with a dashed top border so it never reads as a normal user action. */
+.mock-topup {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--color-border, #d1d5db);
+}
+.mock-topup .field-hint {
+  margin-top: 8px;
+  text-align: center;
+}
+
+/* ==========================================================================
+   Animations
+   ========================================================================== */
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.rise-in {
+  animation: rise-in 400ms ease both;
+}
+
+/* Respect users who prefer reduced motion - disable non-essential motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ==========================================================================
+   Admin dashboard
+   ========================================================================== */
+
+/* Small "Admin" pill next to the brand in the admin navbar. */
+.admin-badge {
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--gradient-brand);
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
+/* Responsive grid of metric summary cards. */
+.metric-cards {
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.metric-card {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.metric-card-label {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.metric-card-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+/* Two-up chart layout that collapses to one column on narrow screens. */
+.admin-charts {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+/* Reconciliation "run" controls row. */
+.recon-controls {
+  margin-top: 16px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Info-variant alert (reuses .alert base). */
+.alert-info {
+  background: var(--color-info-soft);
+  color: #075985;
+}
+
+/* A horizontally-scrollable wrapper so wide tables don't break layout on
+   small screens. */
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.data-table thead th {
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.data-table tbody td {
+  padding: 12px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.data-table tbody tr:hover {
+  background: var(--color-surface-muted);
+}
+
+.empty-hint {
+  text-align: center;
+  color: var(--color-text-muted);
+  padding: 20px 0;
+}

@@ -1,0 +1,65 @@
+name: CI
+
+# Run on every push and pull request targeting main, so no broken code
+# can be merged without the test suite passing first (PROJECT_SPEC.md
+# Section 9: "GitHub Actions workflow that runs mvn test on every push/PR").
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-tests:
+    name: Backend build & tests
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Check out the repository code onto the runner.
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      # 2. Install the JDK. Java 21 matches <java.version> in backend/pom.xml.
+      #    The built-in Maven dependency cache speeds up subsequent runs.
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      # 3. Run the full test suite. Tests use an in-memory H2 database (see
+      #    src/test/resources/application.properties), so NO MySQL/Razorpay
+      #    or secrets are needed - the suite is fully self-contained here.
+      #    --batch-mode keeps the CI log clean (no download progress spam).
+      - name: Run tests
+        working-directory: backend
+        run: mvn --batch-mode clean verify
+
+  frontend-build:
+    name: Frontend build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      # Enable pnpm (the project uses it - see frontend/pnpm-lock.yaml) via
+      # Corepack, which ships with Node.
+      - name: Set up Node & pnpm
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Enable pnpm
+        run: corepack enable
+
+      # A production build is a meaningful check on its own: it fails if the
+      # React code has import errors, broken JSX, etc.
+      - name: Install dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        working-directory: frontend
+        run: pnpm build
