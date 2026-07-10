@@ -1,5 +1,6 @@
 package com.wallet.security;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,6 +14,12 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * The central configuration class for Spring Security - this is where we
@@ -35,6 +42,17 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     /**
+     * Comma-separated list of browser origins allowed to call this API
+     * (CORS). In local dev the Vite proxy makes CORS irrelevant, so this
+     * defaults to the dev frontend. In production, set the deployed
+     * frontend URL(s) via the CORS_ALLOWED_ORIGINS environment variable,
+     * e.g. "https://ledgerpay.vercel.app". Without this, the browser
+     * blocks the deployed frontend's requests to a different-origin API.
+     */
+    @Value("${cors.allowed-origins:http://localhost:5173}")
+    private String allowedOrigins;
+
+    /**
      * The single, most important bean in this class: it defines the
      * ordered chain of rules Spring Security applies to every incoming
      * HTTP request.
@@ -50,6 +68,11 @@ public class SecurityConfig {
             JwtAuthenticationFilter jwtAuthenticationFilter
     ) throws Exception {
         http
+                // Enable CORS using the corsConfigurationSource() bean
+                // below, so the deployed frontend (a different origin than
+                // the backend) is allowed to call this API from the browser.
+                .cors(cors -> {})
+
                 // CSRF (Cross-Site Request Forgery) protection is a
                 // browser-cookie-session-based defense mechanism - it
                 // matters when the browser automatically attaches
@@ -123,6 +146,32 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    /**
+     * Defines the CORS policy Spring Security applies (activated by the
+     * `.cors(...)` call above). Allowed origins come from the
+     * CORS_ALLOWED_ORIGINS env var (comma-separated) so we never hard-code
+     * the deployed frontend URL. We allow the standard REST methods plus
+     * the custom headers this API uses (Authorization for the JWT, and
+     * Idempotency-Key on mutating calls), and expose X-Request-Id so the
+     * frontend can read the correlation id if needed.
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList());
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Idempotency-Key", "X-Razorpay-Signature"));
+        config.setExposedHeaders(List.of("X-Request-Id"));
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 
     /**
