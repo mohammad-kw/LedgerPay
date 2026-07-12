@@ -65,6 +65,12 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request, null);
     }
 
+    /** Admin requested a user id that doesn't exist (see UserNotFoundException's javadoc) -> 404 Not Found. */
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleUserNotFound(UserNotFoundException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request, null);
+    }
+
     /**
      * A transfer request that doesn't make sense - sending to yourself, or a
      * receiver we don't recognise (see InvalidTransferException's javadoc)

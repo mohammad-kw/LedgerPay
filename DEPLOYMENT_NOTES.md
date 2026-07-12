@@ -9,19 +9,21 @@
 ## 0. Pre-deployment prep (the setup that avoided later pain)
 
 Before deploying, we made the app "12-factor" ready so nothing was hard-coded:
+
 - `server.port=${PORT:8080}` — Render injects the port.
 - All secrets read from **environment variables** with local-dev fallbacks.
 - **CORS origins** read from `CORS_ALLOWED_ORIGINS` env var.
 - Frontend API base URL read from `VITE_API_BASE_URL`.
 - Added a **Dockerfile** (multi-stage) so Render builds reliably.
 
-**Lesson:** Externalizing config *before* deploying meant the only prod work was setting env vars, not changing code.
+**Lesson:** Externalizing config _before_ deploying meant the only prod work was setting env vars, not changing code.
 
 ---
 
 ## 1. GitHub push — Personal Access Token missing `workflow` scope
 
 **Symptom:**
+
 ```
 ! [remote rejected] main -> main (refusing to allow a Personal Access Token
 to create or update workflow `.github/workflows/ci.yml` without `workflow` scope)
@@ -38,6 +40,7 @@ to create or update workflow `.github/workflows/ci.yml` without `workflow` scope
 ## 2. Wrong GitHub account pushed (403 denied)
 
 **Symptom:**
+
 ```
 remote: Permission to mohammad-kw/LedgerPay.git denied to mohammadkw0.
 fatal: ... The requested URL returned error: 403
@@ -46,10 +49,13 @@ fatal: ... The requested URL returned error: 403
 **Root cause:** The machine had a **company** GitHub credential (`mohammadkw0`) cached in Windows Credential Manager, so git tried to push to the personal repo (`mohammad-kw`) using the wrong identity.
 
 **Fix:** Avoided touching the cached company credential entirely by embedding a **Personal Access Token for the personal account directly in the remote URL** for this one repo:
+
 ```
 git remote set-url origin https://mohammad-kw:<TOKEN>@github.com/mohammad-kw/LedgerPay.git
 ```
+
 Also set a repo-local identity so commit author was correct:
+
 ```
 git config --local user.name "mohammad-kw"
 git config --local user.email "…@gmail.com"
@@ -62,6 +68,7 @@ git config --local user.email "…@gmail.com"
 ## 3. CI failed — pnpm needed Node 22, runner had Node 20
 
 **Symptom (GitHub Actions):**
+
 ```
 warn: This version of pnpm requires at least Node.js v22.13
 Error [ERR_UNKNOWN_BUILTIN_MODULE]: No such built-in module: node:sqlite
@@ -70,6 +77,7 @@ Error [ERR_UNKNOWN_BUILTIN_MODULE]: No such built-in module: node:sqlite
 **Root cause:** The CI used `corepack`, which pulled the **latest pnpm (11.x)** that requires Node 22, but the workflow installed **Node 20** → crash.
 
 **Fix (two parts):**
+
 1. **Pinned pnpm** in `frontend/package.json`: `"packageManager": "pnpm@9.15.0"` (works on Node 20).
 2. Bumped the CI Node version to **22** for future-proofing.
 
@@ -80,6 +88,7 @@ Error [ERR_UNKNOWN_BUILTIN_MODULE]: No such built-in module: node:sqlite
 ## 4. CI failed — "packages field missing or empty"
 
 **Symptom:**
+
 ```
 ERROR  packages field missing or empty
 ```
@@ -95,6 +104,7 @@ ERROR  packages field missing or empty
 ## 5. Render — MySQL driver rejected the connection URL
 
 **Symptom:**
+
 ```
 Driver com.mysql.cj.jdbc.Driver claims to not accept jdbcUrl,
 mysql://avnadmin:****@…aivencloud.com:16729/defaultdb?ssl-mode=REQUIRED
@@ -103,6 +113,7 @@ mysql://avnadmin:****@…aivencloud.com:16729/defaultdb?ssl-mode=REQUIRED
 **Root cause:** We pasted **Aiven's raw connection URI** into `DB_URL`. The JDBC driver needs a different format: a `jdbc:mysql://` prefix, **no embedded credentials**, and JDBC-style SSL params (not the CLI's `ssl-mode`).
 
 **Fix:** Split it into proper env vars:
+
 ```
 DB_URL = jdbc:mysql://…aivencloud.com:16729/defaultdb?useSSL=true&requireSSL=true&serverTimezone=UTC&allowPublicKeyRetrieval=true
 DB_USERNAME = avnadmin
@@ -116,24 +127,27 @@ DB_PASSWORD = ****
 ## 6. Render — "Communications link failure" (couldn't connect at all)
 
 **Symptom:**
+
 ```
 org.hibernate.exception.JDBCConnectionException: Unable to open JDBC
 Connection for DDL execution [Communications link failure]
 ```
 
-**Root cause:** The URL format was now valid, but the **SSL handshake/params** weren't right for Aiven (which *requires* SSL), so the actual connection couldn't be established.
+**Root cause:** The URL format was now valid, but the **SSL handshake/params** weren't right for Aiven (which _requires_ SSL), so the actual connection couldn't be established.
 
 **Fix:** Used the Connector/J-native SSL param and public-key retrieval:
+
 ```
 ?sslMode=REQUIRED&serverTimezone=UTC&allowPublicKeyRetrieval=true
 ```
+
 Also confirmed the Aiven service was **Running** and had **no IP allowlist** blocking Render (free tier has no fixed outbound IP).
 
 **Lesson:** "Communications link failure" = a network/SSL problem (not URL or auth). Read the deepest `Caused by:` and match SSL params to what the DB host requires.
 
 ---
 
-## 7. Backend "403 / access denied" at the root URL — *not actually an error*
+## 7. Backend "403 / access denied" at the root URL — _not actually an error_
 
 **Symptom:** Visiting `https://…onrender.com/` showed `HTTP ERROR 403`.
 
@@ -141,20 +155,26 @@ Also confirmed the Aiven service was **Running** and had **no IP allowlist** blo
 
 **Fix:** Nothing to fix — tested a **public** endpoint instead (`/api/auth/login`), which returned 200 with a token.
 
-**Lesson:** A 403 on an unmapped/protected path can be *correct* security behavior, not a deployment failure. Test a known-public route to verify liveness.
+**Lesson:** A 403 on an unmapped/protected path can be _correct_ security behavior, not a deployment failure. Test a known-public route to verify liveness.
 
 ---
 
 ## 8. `/actuator/health` returned 500
 
 **Symptom:**
+
 ```json
-{ "status": 500, "message": "An unexpected error occurred", "path": "/actuator/health" }
+{
+  "status": 500,
+  "message": "An unexpected error occurred",
+  "path": "/actuator/health"
+}
 ```
 
 **Root cause:** The **Spring Boot Actuator dependency was never added**, so `/actuator/health` didn't exist — the request fell through to the catch-all `GlobalExceptionHandler` → generic 500. (SecurityConfig even permitted the path, but nothing served it.)
 
 **Fix:** Added `spring-boot-starter-actuator` to `pom.xml` and exposed only health:
+
 ```
 management.endpoints.web.exposure.include=health
 management.endpoint.health.show-details=when-authorized
@@ -171,8 +191,9 @@ management.endpoint.health.show-details=when-authorized
 **Root cause:** Classic SPA problem — React Router handles routes client-side, but on refresh the browser asks Vercel's server for `/login` directly, and there's no such file → 404.
 
 **Fix:** Added `frontend/vercel.json` rewriting all paths to `index.html` so React Router handles routing:
+
 ```json
-{ "rewrites": [ { "source": "/(.*)", "destination": "/index.html" } ] }
+{ "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }] }
 ```
 
 **Lesson:** Any client-side-routed SPA needs a host-level "serve index.html for all routes" rewrite.
@@ -183,11 +204,13 @@ management.endpoint.health.show-details=when-authorized
 
 **Symptom:** Frontend showed "login failed", even on mobile data (ruling out the corporate Zscaler proxy). But calling the backend **directly from a terminal** returned `200` + a valid token.
 
-**Root cause:** **CORS.** Browsers enforce CORS; terminals don't. Sending the login request *with* the frontend's `Origin` header reproduced the failure:
+**Root cause:** **CORS.** Browsers enforce CORS; terminals don't. Sending the login request _with_ the frontend's `Origin` header reproduced the failure:
+
 ```
 POST /api/auth/login  (Origin: https://ledgerpay-nine.vercel.app)  → 403
 Preflight OPTIONS                                                   → 403 (origin not allowed)
 ```
+
 So the backend was rejecting the Vercel origin.
 
 **Fix:** Set the allowed origin on Render (`CORS_ALLOWED_ORIGINS`). The final gotcha: the env var was initially named/valued slightly wrong — it had to **exactly** match the code's property and be the exact origin (**https, no trailing slash, no path**).
@@ -234,4 +257,4 @@ So the backend was rejecting the Vercel origin.
 
 ---
 
-*Companion to `README.md`, `INTERVIEW_PREP.md`, `CODE_WALKTHROUGH.md`, and `ARCHITECTURE_DIAGRAMS.md`.*
+_Companion to `README.md`, `INTERVIEW_PREP.md`, `CODE_WALKTHROUGH.md`, and `ARCHITECTURE_DIAGRAMS.md`._

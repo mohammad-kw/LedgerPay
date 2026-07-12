@@ -1082,6 +1082,22 @@ a:hover {
   background: var(--color-surface-muted);
 }
 
+.user-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 20px;
+}
+
+.user-profile-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.user-profile-grid strong {
+  font-size: 1.05rem;
+}
+
 .empty-hint {
   text-align: center;
   color: var(--color-text-muted);

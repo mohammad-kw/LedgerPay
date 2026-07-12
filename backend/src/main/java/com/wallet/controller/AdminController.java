@@ -2,10 +2,13 @@ package com.wallet.controller;
 
 import com.wallet.dto.AdminMetricsResponse;
 import com.wallet.dto.AdminTransactionResponse;
+import com.wallet.dto.AdminUserDetailResponse;
+import com.wallet.dto.AdminUserResponse;
 import com.wallet.service.AdminService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -45,5 +48,17 @@ public class AdminController {
     public ResponseEntity<List<AdminTransactionResponse>> recentTransactions(
             @RequestParam(name = "limit", defaultValue = "50") int limit) {
         return ResponseEntity.ok(adminService.getRecentTransactions(limit));
+    }
+
+    /** GET /api/admin/users - every user with wallet balance + transaction count (no passwords). */
+    @GetMapping("/users")
+    public ResponseEntity<List<AdminUserResponse>> users() {
+        return ResponseEntity.ok(adminService.getAllUsers());
+    }
+
+    /** GET /api/admin/users/{id} - one user's profile + full transaction history. 404 if unknown. */
+    @GetMapping("/users/{id}")
+    public ResponseEntity<AdminUserDetailResponse> userDetail(@PathVariable("id") Long id) {
+        return ResponseEntity.ok(adminService.getUserDetail(id));
     }
 }

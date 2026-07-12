@@ -10,10 +10,10 @@ A production-minded digital wallet (a mini-Paytm) that demonstrates real backend
 
 **Demo credentials:**
 
-| Role | Email | Password |
-|---|---|---|
-| Admin | `admin@ledgerpay.com` | `Admin@12345` |
-| User | _register your own_ | must have upper + lower + digit, 8–72 chars |
+| Role  | Email                 | Password                                    |
+| ----- | --------------------- | ------------------------------------------- |
+| Admin | `admin@ledgerpay.com` | `Admin@12345`                               |
+| User  | _register your own_   | must have upper + lower + digit, 8–72 chars |
 
 > ⏳ **First load may take ~30–50 seconds.** The backend runs on Render's free tier, which sleeps after inactivity and needs a moment to wake on the first request. Subsequent requests are fast.
 

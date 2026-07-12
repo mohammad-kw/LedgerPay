@@ -142,6 +142,12 @@ export default function AdminDashboard() {
         <div className="navbar-actions">
           <button
             className="btn btn-ghost"
+            onClick={() => navigate("/admin/users")}
+          >
+            View users
+          </button>
+          <button
+            className="btn btn-ghost"
             onClick={() => navigate("/dashboard")}
           >
             My wallet

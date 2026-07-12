@@ -2,8 +2,13 @@ package com.wallet.service;
 
 import com.wallet.dto.AdminMetricsResponse;
 import com.wallet.dto.AdminTransactionResponse;
+import com.wallet.dto.AdminUserDetailResponse;
+import com.wallet.dto.AdminUserResponse;
 import com.wallet.entity.TransactionStatus;
 import com.wallet.entity.TransactionType;
+import com.wallet.entity.User;
+import com.wallet.entity.Wallet;
+import com.wallet.exception.UserNotFoundException;
 import com.wallet.repository.TransactionRepository;
 import com.wallet.repository.UserRepository;
 import com.wallet.repository.WalletRepository;
@@ -86,5 +91,58 @@ public class AdminService {
                 .stream()
                 .map(AdminTransactionResponse::from)
                 .toList();
+    }
+
+    /**
+     * Every user in the system (newest first), each with their wallet balance
+     * and transaction count, for the admin "all users" list. Never exposes
+     * password hashes - AdminUserResponse has no such field.
+     */
+    @Transactional(readOnly = true)
+    public List<AdminUserResponse> getAllUsers() {
+        return userRepository.findAll()
+                .stream()
+                .sorted((a, b) -> b.getId().compareTo(a.getId()))
+                .map(this::toUserResponse)
+                .toList();
+    }
+
+    /**
+     * One user's profile + wallet + full transaction history, for the admin
+     * user-detail view. Throws UserNotFoundException (-> 404) if the id is
+     * unknown.
+     */
+    @Transactional(readOnly = true)
+    public AdminUserDetailResponse getUserDetail(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("No user found with id " + userId));
+
+        Wallet wallet = walletRepository.findByUserId(userId).orElse(null);
+
+        List<AdminTransactionResponse> transactions = wallet == null
+                ? List.of()
+                : transactionRepository.findAllForWallet(wallet.getId())
+                        .stream()
+                        .map(AdminTransactionResponse::from)
+                        .toList();
+
+        return new AdminUserDetailResponse(toUserResponse(user), transactions);
+    }
+
+    /** Map a User (+ its wallet) into the password-free admin projection. */
+    private AdminUserResponse toUserResponse(User user) {
+        Wallet wallet = walletRepository.findByUserId(user.getId()).orElse(null);
+        BigDecimal balance = wallet != null ? wallet.getBalance() : BigDecimal.ZERO;
+        long txnCount = wallet != null ? transactionRepository.countForWallet(wallet.getId()) : 0L;
+
+        return new AdminUserResponse(
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+                user.getPhone(),
+                user.getRole().name(),
+                balance,
+                txnCount,
+                user.getCreatedAt());
     }
 }

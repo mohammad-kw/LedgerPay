@@ -168,4 +168,27 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
      */
     @Query("SELECT t FROM Transaction t ORDER BY t.createdAt DESC")
     List<Transaction> findRecentAcrossAllUsers(Pageable pageable);
+
+    /**
+     * Every transaction (newest first) where the given wallet is EITHER the
+     * sender or the receiver, for the admin per-user detail view. Same
+     * "sender OR receiver" logic as findForWallet, but returns the full list
+     * (no paging) since one user's history is small at this scale.
+     */
+    @Query("""
+            SELECT t FROM Transaction t
+            WHERE t.senderWallet.id = :walletId OR t.receiverWallet.id = :walletId
+            ORDER BY t.createdAt DESC
+            """)
+    List<Transaction> findAllForWallet(@Param("walletId") Long walletId);
+
+    /**
+     * How many transactions involve the given wallet (as sender or receiver) -
+     * shown as a per-user count in the admin user list without loading rows.
+     */
+    @Query("""
+            SELECT COUNT(t) FROM Transaction t
+            WHERE t.senderWallet.id = :walletId OR t.receiverWallet.id = :walletId
+            """)
+    long countForWallet(@Param("walletId") Long walletId);
 }

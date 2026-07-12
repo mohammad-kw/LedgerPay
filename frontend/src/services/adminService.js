@@ -37,3 +37,13 @@ export function runReconciliation(date) {
     .post("/admin/reconciliation/run", null, { params })
     .then((res) => res.data);
 }
+
+/** GET /api/admin/users -> every user with wallet balance + transaction count. */
+export function getUsers() {
+  return api.get("/admin/users").then((res) => res.data);
+}
+
+/** GET /api/admin/users/{id} -> one user's profile + full transaction history. */
+export function getUserDetail(id) {
+  return api.get(`/admin/users/${id}`).then((res) => res.data);
+}
