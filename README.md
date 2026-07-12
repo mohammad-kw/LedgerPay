@@ -2,7 +2,24 @@
 
 A production-minded digital wallet (a mini-Paytm) that demonstrates real backend engineering depth: **financial correctness** (double-entry ledger), **idempotency**, **webhook-driven payment confirmation**, and **daily reconciliation** against the payment gateway — the kinds of problems most junior portfolios never touch.
 
-> **Status:** Backend + frontend feature-complete, 52 tests passing, CI configured. Razorpay runs in **Test Mode** (no real money).
+> **Status:** Live in production. Backend + frontend feature-complete, 52 tests passing, CI green. Razorpay runs in **Test Mode**; the deployed demo uses an equivalent mock top-up (same ledger + state-machine path) because the Razorpay account isn't KYC-activated.
+
+## 🚀 Live demo
+
+**App:** https://ledgerpay-nine.vercel.app
+
+**Demo credentials:**
+
+| Role | Email | Password |
+|---|---|---|
+| Admin | `admin@ledgerpay.com` | `Admin@12345` |
+| User | _register your own_ | must have upper + lower + digit, 8–72 chars |
+
+> ⏳ **First load may take ~30–50 seconds.** The backend runs on Render's free tier, which sleeps after inactivity and needs a moment to wake on the first request. Subsequent requests are fast.
+
+**Try this flow:** log in as admin → **Add money** (instant demo credit) → register a second user in another tab → **Send money** between them → view transaction history → open the **Admin dashboard** for metrics + reconciliation.
+
+**Stack:** React/Vite on Vercel · Spring Boot (Docker) on Render · MySQL on Aiven.
 
 ---
 
