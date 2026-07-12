@@ -200,6 +200,14 @@ Switching is a **one-line config change** (`app.reconciliation.gateway-provider`
 - `SecurityConfig`: `/api/admin/**` requires `hasRole("ADMIN")`; anonymous → 401, non-admin → 403.
 - **No "register as admin" endpoint** (that would be a privilege-escalation hole). The first admin is **seeded on startup** from env vars (`AdminSeeder`, a `CommandLineRunner`) — a trusted, out-of-band channel.
 
+**Admin user-management view (oversight):** `GET /api/admin/users` lists every user (with wallet balance + transaction count); `GET /api/admin/users/{id}` returns one user's profile + full transaction history. Both are ADMIN-only and read-only.
+
+**Q: How do you make sure the admin user view can't leak passwords?**
+A: The response is a purpose-built DTO (`AdminUserResponse`) that has **no password field at all** — so it's *structurally impossible* to serialize the BCrypt hash, even by accident. Same "a DTO can't leak what it doesn't have" principle used everywhere in this codebase, instead of relying on remembering to strip a field.
+
+**Q: The user-facing transaction endpoint returns 404 for someone else's transaction, but the admin endpoint returns a plain 404 for a missing user — why the difference?**
+A: Different threat models. For a *normal* user, `GET /transactions/{id}` returns 404 (not 403) for a transaction they don't own, so ids can't be probed (IDOR/enumeration defense). For the *admin* endpoint, the admin is legitimately authorized to see every user, so hiding existence adds nothing — a plain 404 for an unknown id is correct. The lesson: "hide existence" is only worth it when the caller *shouldn't* be able to know the resource exists.
+
 ### Other security
 
 - All secrets in **environment variables** (`.env`, gitignored); `.env.example` is the committed template.
