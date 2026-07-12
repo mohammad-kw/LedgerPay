@@ -31,6 +31,14 @@ import { initiateTopUp, mockTopUp } from "../services/walletService";
  */
 const PRESET_AMOUNTS = [100, 500, 1000, 2000];
 
+// When true, the modal uses the backend's mock top-up (instant credit,
+// no Razorpay) instead of the real Razorpay checkout. Enabled automatically
+// in local `vite dev`, and in a deployed build when VITE_ENABLE_MOCK_TOPUP
+// is set to "true" (used for the live demo, since the Razorpay account is
+// not activated). The matching backend route requires MOCK_TOPUP_ENABLED=true.
+const MOCK_MODE =
+  import.meta.env.DEV || import.meta.env.VITE_ENABLE_MOCK_TOPUP === "true";
+
 export default function AddMoneyModal({ userEmail, onClose, onCompleted }) {
   const [amount, setAmount] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -254,37 +262,38 @@ export default function AddMoneyModal({ userEmail, onClose, onCompleted }) {
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              className="btn btn-primary btn-block"
-              disabled={submitting}
-            >
-              {submitting ? "Opening…" : "Continue to payment"}
-            </button>
+            {!MOCK_MODE && (
+              <button
+                type="submit"
+                className="btn btn-primary btn-block"
+                disabled={submitting}
+              >
+                {submitting ? "Opening…" : "Continue to payment"}
+              </button>
+            )}
           </div>
 
           {/*
-           * DEV-ONLY escape hatch. import.meta.env.DEV is true under `vite dev`
-           * and statically false in a production build, so Vite tree-shakes
-           * this entire block out of the shipped bundle. It lets you fund a
-           * wallet instantly while the Razorpay account activation is pending.
-           * The matching backend route only exists when MOCK_TOPUP_ENABLED=true.
+           * Mock top-up path. Shown in local `vite dev` and in a deployed
+           * build when VITE_ENABLE_MOCK_TOPUP=true (the live demo, since the
+           * Razorpay account is not activated). It credits the wallet directly
+           * via the backend, reusing the same ledger + state-machine logic as
+           * the real webhook path. Backend route requires MOCK_TOPUP_ENABLED=true.
            */}
-          {import.meta.env.DEV && (
+          {MOCK_MODE && (
             <div className="mock-topup">
               <button
                 type="button"
-                className="btn btn-ghost btn-block"
+                className="btn btn-primary btn-block"
                 onClick={handleMockTopUp}
                 disabled={submitting}
               >
-                {submitting
-                  ? "Processing…"
-                  : "Dev: add instantly (skip Razorpay)"}
+                {submitting ? "Processing…" : "Add money"}
               </button>
               <p className="field-hint">
-                Development only - credits your wallet directly, bypassing
-                Razorpay. Not available in production.
+                Demo mode: credits your wallet instantly. The real flow uses
+                Razorpay Checkout + a signature-verified webhook (disabled here
+                because the Razorpay account isn't activated).
               </p>
             </div>
           )}
