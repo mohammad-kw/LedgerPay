@@ -100,6 +100,19 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
+        <!-- ===================== Actuator (health checks) ===================== -->
+        <!--
+            Exposes operational endpoints, most importantly /actuator/health
+            (PROJECT_SPEC.md Section 5) which uptime monitors and the hosting
+            platform (Render) use to confirm the app + its dependencies (DB)
+            are up. Without this dependency the path simply doesn't exist and
+            returns a generic 500 via the catch-all handler.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
         <!-- ===================== MySQL JDBC driver ===================== -->
         <!--
             The actual driver Hibernate uses to open a network connection to
